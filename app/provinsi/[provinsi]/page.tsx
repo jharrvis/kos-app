@@ -4,11 +4,11 @@ import Link from 'next/link';
 import Breadcrumb from '@/components/Breadcrumb';
 
 type Props = {
-  params: { provinsi: string };
+  params: Promise<{ provinsi: string }>;
 };
 
 export default async function ProvincePage({ params }: Props) {
-  const { provinsi } = params;
+  const { provinsi } = await params;
   const supabase = await createClient();
 
   // Fetch province and cities
