@@ -2,10 +2,11 @@ import { createClient } from "@/lib/supabase/server";
 import { Payment } from "@/types/subscription";
 
 interface SubscriptionDetailPageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export default async function SubscriptionDetailPage({ params }: SubscriptionDetailPageProps) {
+  const { id } = await params;
   const supabase = await createClient();
   const { data: subscription } = await supabase
     .from("subscriptions")
@@ -15,7 +16,7 @@ export default async function SubscriptionDetailPage({ params }: SubscriptionDet
       profiles!inner (full_name, email),
       payments (*)
     `)
-    .eq("id", params.id)
+    .eq("id", id)
     .single();
 
   if (!subscription) {

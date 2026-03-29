@@ -2,10 +2,6 @@ const MAYAR_API_BASE_URL = process.env.MAYAR_API_BASE_URL || 'https://api.mayar.
 const MAYAR_API_KEY = process.env.MAYAR_API_KEY
 const MAYAR_WEBHOOK_SECRET = process.env.MAYAR_WEBHOOK_SECRET
 
-if (!MAYAR_API_KEY) {
-  throw new Error('MAYAR_API_KEY is required')
-}
-
 export interface CreateInvoiceParams {
   name: string
   email: string
@@ -66,8 +62,11 @@ class MayarClient {
   private apiKey: string
 
   constructor() {
+    if (!MAYAR_API_KEY) {
+      throw new Error('MAYAR_API_KEY is required')
+    }
     this.baseUrl = MAYAR_API_BASE_URL
-    this.apiKey = MAYAR_API_KEY!
+    this.apiKey = MAYAR_API_KEY
   }
 
   private async request<T>(
@@ -126,4 +125,6 @@ class MayarClient {
   }
 }
 
-export const mayarClient = new MayarClient()
+export const mayarClient = typeof window === 'undefined' && MAYAR_API_KEY 
+  ? new MayarClient() 
+  : null as any
