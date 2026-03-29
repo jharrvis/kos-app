@@ -5,6 +5,7 @@ import ProvinceSelector from "@/components/ProvinceSelector";
 import CitySelector from "@/components/CitySelector";
 import { useRouter } from "next/navigation";
 import MapPicker from '@/components/MapPicker';
+import PropertyLimitIndicator from '@/components/PropertyLimitIndicator';
 
 const PropertyForm = () => {
   const [showMapPicker, setShowMapPicker] = useState(false);
@@ -191,6 +192,8 @@ const PropertyForm = () => {
             }}
           />
         )}
+
+        <PropertyLimitIndicator />
 
         <button
           type="submit"

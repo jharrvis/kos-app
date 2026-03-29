@@ -1,6 +1,13 @@
 import { createClient } from '@/lib/supabase/server'
 import { auth } from '@/lib/auth'
 import { NextResponse } from 'next/server'
+import { 
+  checkPropertyLimit, 
+  hasActiveSubscription, 
+  activatePremiumTrial,
+  checkImageLimit,
+  checkFeaturedListingAccess
+} from '@/lib/subscription-limits'
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -58,6 +65,38 @@ export async function POST(request: Request) {
     )
   }
 
+  const hasSubscription = await hasActiveSubscription(session.user.id)
+  
+  if (!hasSubscription) {
+    const { data: premiumTier } = await supabase
+      .from('subscription_tiers')
+      .select('id')
+      .eq('name', 'premium')
+      .single()
+
+    if (premiumTier) {
+      await activatePremiumTrial(session.user.id, premiumTier.id)
+    } else {
+      return NextResponse.json(
+        { error: 'No subscription available. Please contact support.' },
+        { status: 500 }
+      )
+    }
+  }
+
+  const limitCheck = await checkPropertyLimit(session.user.id)
+  
+  if (!limitCheck.allowed) {
+    return NextResponse.json(
+      { 
+        error: limitCheck.reason,
+        currentCount: limitCheck.currentCount,
+        maxAllowed: limitCheck.maxAllowed
+      },
+      { status: 403 }
+    )
+  }
+
   try {
     const body = await request.json()
     const {
@@ -71,7 +110,9 @@ export async function POST(request: Request) {
       price,
       room_type,
       capacity,
-      facilities
+      facilities,
+      images,
+      is_featured
     } = body
 
     if (!title || !address || !province_id || !city_id || !price) {
@@ -79,6 +120,31 @@ export async function POST(request: Request) {
         { error: 'Missing required fields: title, address, province_id, city_id, price' },
         { status: 400 }
       )
+    }
+
+    if (images && Array.isArray(images)) {
+      const imageLimitCheck = await checkImageLimit(session.user.id, images.length)
+      
+      if (!imageLimitCheck.allowed) {
+        return NextResponse.json(
+          { 
+            error: imageLimitCheck.reason,
+            maxAllowed: imageLimitCheck.maxAllowed
+          },
+          { status: 403 }
+        )
+      }
+    }
+
+    if (is_featured === true) {
+      const featuredCheck = await checkFeaturedListingAccess(session.user.id)
+      
+      if (!featuredCheck.allowed) {
+        return NextResponse.json(
+          { error: featuredCheck.reason },
+          { status: 403 }
+        )
+      }
     }
 
     const { data: provinceExists } = await supabase
@@ -123,6 +189,8 @@ export async function POST(request: Request) {
         room_type,
         capacity,
         facilities,
+        images: images || [],
+        is_featured: is_featured || false,
         status: 'draft'
       })
       .select()

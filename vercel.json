@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/expire-trials",
+      "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/trial-notifications",
+      "schedule": "0 9 * * *"
+    }
+  ]
+}
